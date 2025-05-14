@@ -1,0 +1,406 @@
+def ntt_intt(N, arrW, q, arrPol, mode, N_inv): 
+    print("arrPol in integer form:")
+    print(arrPol)
+
+    stage = int(math.log2(N))
+    print(f"Stage: {stage}")
+
+    buffer = [0] * N
+    print("Initial buffer:")
+    print(buffer)
+
+    # temp = list(range(N))  # hanya dummy, nanti akan di-overwrite
+    
+    for i in range(stage):
+        print(f"\n========== Stage {i+1} of {stage} ==========")
+        
+        # GANTI sesuai instruksi
+        if i == 0:
+            temp = arrPol.copy()
+            
+        print("Initial temp:")          
+        print(temp)
+
+
+        buffer = temp.copy()
+        print("Buffer after copy from temp:")
+        print(buffer)
+
+        temp = [0] * N
+        print("Temp after clearing:")
+        print(temp)
+
+        m = 0
+        l = 0
+        half_step = 2 ** i
+        full_step = 2 ** (i + 1)
+
+        inBu = [[0 for _ in range(full_step)] for _ in range(N // full_step)]
+        print("Initial inBu[0]:")
+        print(inBu[0])
+
+        for j in range(N // full_step):
+            for k in range(full_step):
+                print(f"l = {l}")
+                inBu[j][k] = buffer[l]
+                print(f"inBu[{j}][{k}] <- buffer[{l}] = {buffer[l]}")
+                l += 1
+
+        for j in range(N // full_step):
+            print(f"===== Block j = {j}")
+            bits = int(math.log2(full_step))
+            bitrev_inBu = [0] * full_step
+            for idx in range(full_step):
+                rev_idx = bit_reverse(idx, bits)
+                bitrev_inBu[rev_idx] = inBu[j][idx]
+            inBu[j] = bitrev_inBu
+            print(f"inBu[{j}] after bit-reverse: {inBu[j]}")
+
+            for k in range(full_step):
+                print(f"m = {m}")
+                idx1 = k
+                idx2 = idx1 + 1
+                if idx2 >= (N + 1):
+                    continue
+
+                if m % 2 == 0:
+                    temp[m] = (inBu[j][idx1] + inBu[j][idx2] * arrW[i][k // 2]) % q
+                    print(f"temp[{m}] | inBu[{j}][{idx1}] = {inBu[j][idx1]} | inBu[{j}][{idx2}] = {inBu[j][idx2]} | arrW[{i}][{k//2}] = {arrW[i][k // 2]})")
+                    print(f"temp[{m}] = ({inBu[j][idx1]} + {inBu[j][idx2]} * {arrW[i][k // 2]}) % {q} = {temp[m]}")
+                else:
+                    idx1 = k - 1
+                    idx2 = idx1 + 1
+                    temp[m] = (inBu[j][idx1] - inBu[j][idx2] * arrW[i][(k - 1) // 2]) % q
+                    print(f"temp[{m}] | inBu[{j}][{idx1}] = {inBu[j][idx1]} | inBu[{j}][{idx2}] = {inBu[j][idx2]} | arrW[{i}][{(k - 1)//2}] = {arrW[i][(k - 1) // 2]})")
+                    print(f"temp[{m}] = ({inBu[j][idx1]} - {inBu[j][idx2]} * {arrW[i][(k - 1) // 2]}) % {q} = {temp[m]}")
+                m += 1
+
+        print("Buffer in last stage:")
+        print(buffer)
+
+        print("Temp in last stage:")
+        print(temp)
+
+    if mode==0 : # TAMBAHKAN: simpan temp ke arrPolNtt dan return
+        arrPolNtt = temp.copy()
+        print("arrPol in NTT form:")
+        print(arrPolNtt)
+        return arrPolNtt
+    elif mode==1 :
+        arrPolIntt = [(x * N_inv) % q for x in temp]
+        # arrPolIntt_reversed = bit_reverse_array(arrPolIntt)
+        # print("arrPol after INTT:")
+        print(arrPolIntt)
+        return arrPolIntt
+
+def ntt_intt(N, arrW, q, arrPol, mode, N_inv):
+    print("arrPol in integer form:")
+    print(arrPol)
+
+    stage = int(math.log2(N))
+    print(f"Stage: {stage}")
+
+    buffer = arrPol.copy()
+    print("Initial buffer:")
+    print(buffer)
+
+    for i in range(stage):
+        temp = [0] * N
+        half_step = 2 ** i
+        full_step = 2 ** (i + 1)
+
+        print(f"\n========== Stage {i+1} of {stage} ==========")
+        print(f"half_step = {half_step}, full_step = {full_step}")
+        print(f"Twiddles arrW[{i}]: {arrW[i]}")
+
+        for j in range(0, N, full_step):
+            for k in range(half_step):
+                u = buffer[j + k]
+                v = buffer[j + k + half_step]
+                w = arrW[i][k]
+                
+                t = (w * v) % q
+                temp[j + k] = (u + t) % q
+                temp[j + k + half_step] = (u - t) % q
+
+                print(f"({j + k}, {j + k + half_step}) -> u={u}, v={v}, w={w}")
+                print(f"temp[{j + k}] = (u + w*v) % q = ({u} + {w}*{v}) % {q} = {temp[j + k]}")
+                print(f"temp[{j + k + half_step}] = (u - w*v) % q = ({u} - {w}*{v}) % {q} = {temp[j + k + half_step]}")
+
+        buffer = temp.copy()
+        print("Buffer after this stage:")
+        print(buffer)
+
+    if mode == 0:
+        print("arrPol in NTT form:")
+        print(buffer)
+        return buffer
+    elif mode == 1:
+        arrPolIntt = [(x * N_inv) % q for x in buffer]
+        arrPolIntt = reverse_array(arrPolIntt)
+        print("arrPol after INTT (after scaling and bit-reversal):")
+        print(arrPolIntt)
+        return arrPolIntt
+
+
+def ntt_intt(N, arrW, q, arrPol, mode, N_inv):
+    import math
+
+    print("arrPol in integer form:")
+    print(arrPol)
+
+    stage = int(math.log2(N))
+    print(f"Stage: {stage}")
+
+    buffer = [0] * N
+    print("Initial buffer:")
+    print(buffer)
+
+    for i in range(stage):
+        print(f"\n========== Stage {i+1} of {stage} ==========")
+
+        if i == 0:
+            temp = arrPol.copy()
+
+        print("Initial temp:")          
+        print(temp)
+
+        buffer = temp.copy()
+        print("Buffer after copy from temp:")
+        print(buffer)
+
+        temp = [0] * N
+        print("Temp after clearing:")
+        print(temp)
+
+        m = 0
+        l = 0
+        half_step = 2 ** i
+        full_step = 2 ** (i + 1)
+
+        inBu = [[0 for _ in range(full_step)] for _ in range(N // full_step)]
+        print("Initial inBu[0]:")
+        print(inBu[0])
+
+        for j in range(N // full_step):
+            for k in range(full_step):
+                print(f"l = {l}")
+                inBu[j][k] = buffer[l]
+                print(f"inBu[{j}][{k}] <- buffer[{l}] = {buffer[l]}")
+                l += 1
+
+        for j in range(N // full_step):
+            print(f"===== Block j = {j}")
+            for k in range(half_step):
+                idx1 = k
+                idx2 = k + half_step
+                W = arrW[i][k]
+
+                # inBu[j] = bit_reverse_array(inBu[j])
+
+                u = inBu[j][idx1]
+                t = (inBu[j][idx2] * W) % q
+
+                temp[m] = (u + t) % q
+                print(f"temp[{m}] = ({u} + {t}) % {q} = {temp[m]}")
+                m += 1
+
+                temp[m] = (u - t) % q
+                print(f"temp[{m}] = ({u} - {t}) % {q} = {temp[m]}")
+                m += 1
+
+        print("Buffer in last stage:")
+        print(buffer)
+
+        print("Temp in last stage:")
+        print(temp)
+
+    if mode == 0:  # NTT
+        arrPolNtt = temp.copy()
+        print("arrPol in NTT form:")
+        print(arrPolNtt)
+        return arrPolNtt
+    elif mode == 1:  # INTT
+        arrPolIntt = [(x * N_inv) % q for x in (temp)]
+        print("arrPol after INTT:")
+        print(arrPolIntt)
+        return arrPolIntt
+
+
+def ntt(N, arrW, q, arrPol): 
+    print("arrPol in integer form:")
+    print(arrPol)
+
+    stage = int(math.log2(N))
+    print(f"Stage: {stage}")
+
+    buffer = [0] * N
+    print("Initial buffer:")
+    print(buffer)
+
+    # temp = list(range(N))  # hanya dummy, nanti akan di-overwrite
+    
+    for i in range(stage):
+        print(f"\n========== Stage {i+1} of {stage} ==========")
+        
+        # GANTI sesuai instruksi
+        if i == 0:
+            temp = arrPol.copy()
+            
+        print("Initial temp:")          
+        print(temp)
+
+
+        buffer = temp.copy()
+        print("Buffer after copy from temp:")
+        print(buffer)
+
+        temp = [0] * N
+        print("Temp after clearing:")
+        print(temp)
+
+        m = 0
+        l = 0
+        half_step = 2 ** i
+        full_step = 2 ** (i + 1)
+
+        inBu = [[0 for _ in range(full_step)] for _ in range(N // full_step)]
+        print("Initial inBu[0]:")
+        print(inBu[0])
+
+        for j in range(N // full_step):
+            for k in range(full_step):
+                print(f"l = {l}")
+                inBu[j][k] = buffer[l]
+                print(f"inBu[{j}][{k}] <- buffer[{l}] = {buffer[l]}")
+                l += 1
+
+        for j in range(N // full_step):
+            print(f"===== Block j = {j}")
+            bits = int(math.log2(full_step))
+            bitrev_inBu = [0] * full_step
+            for idx in range(full_step):
+                rev_idx = bit_reverse(idx, bits)
+                bitrev_inBu[rev_idx] = inBu[j][idx]
+            inBu[j] = bitrev_inBu
+            print(f"inBu[{j}] after bit-reverse: {inBu[j]}")
+
+            for k in range(full_step):
+                print(f"m = {m}")
+                idx1 = k
+                idx2 = idx1 + 1
+                if idx2 >= (N + 1):
+                    continue
+
+                if m % 2 == 0:
+                    temp[m] = (inBu[j][idx1] + inBu[j][idx2] * arrW[i][k // 2]) % q
+                    print(f"temp[{m}] | inBu[{j}][{idx1}] = {inBu[j][idx1]} | inBu[{j}][{idx2}] = {inBu[j][idx2]} | arrW[{i}][{k//2}] = {arrW[i][k // 2]})")
+                    print(f"temp[{m}] = ({inBu[j][idx1]} + {inBu[j][idx2]} * {arrW[i][k // 2]}) % {q} = {temp[m]}")
+                else:
+                    idx1 = k - 1
+                    idx2 = idx1 + 1
+                    temp[m] = (inBu[j][idx1] - inBu[j][idx2] * arrW[i][(k - 1) // 2]) % q
+                    print(f"temp[{m}] | inBu[{j}][{idx1}] = {inBu[j][idx1]} | inBu[{j}][{idx2}] = {inBu[j][idx2]} | arrW[{i}][{(k - 1)//2}] = {arrW[i][(k - 1) // 2]})")
+                    print(f"temp[{m}] = ({inBu[j][idx1]} - {inBu[j][idx2]} * {arrW[i][(k - 1) // 2]}) % {q} = {temp[m]}")
+                m += 1
+
+        print("Buffer in last stage:")
+        print(buffer)
+
+        print("Temp in last stage:")
+        print(temp)
+
+    arrPolNtt = temp.copy()
+    print("arrPol in NTT form:")
+    print(arrPolNtt)
+    return arrPolNtt
+    
+
+def intt(N, arrW, q, arrPol, N_inv): 
+    print("arrPol in integer form:")
+    print(arrPol)
+
+    stage = int(math.log2(N))
+    print(f"Stage: {stage}")
+
+    buffer = [0] * N
+    print("Initial buffer:")
+    print(buffer)
+
+    # temp = list(range(N))  # hanya dummy, nanti akan di-overwrite
+    
+    for i in range(stage):
+        print(f"\n========== Stage {i+1} of {stage} ==========")
+        
+        # GANTI sesuai instruksi
+        if i == 0:
+            temp = arrPol.copy()
+            
+        print("Initial temp:")          
+        print(temp)
+
+
+        buffer = temp.copy()
+        print("Buffer after copy from temp:")
+        print(buffer)
+
+        temp = [0] * N
+        print("Temp after clearing:")
+        print(temp)
+
+        m = 0
+        l = 0
+        half_step = 2 ** i
+        full_step = 2 ** (i + 1)
+
+        inBu = [[0 for _ in range(full_step)] for _ in range(N // full_step)]
+        print("Initial inBu[0]:")
+        print(inBu[0])
+
+        for j in range(N // full_step):
+            for k in range(full_step):
+                print(f"l = {l}")
+                inBu[j][k] = buffer[l]
+                print(f"inBu[{j}][{k}] <- buffer[{l}] = {buffer[l]}")
+                l += 1
+
+        for j in range(N // full_step):
+            print(f"===== Block j = {j}")
+            bits = int(math.log2(full_step))
+            bitrev_inBu = [0] * full_step
+            for idx in range(full_step):
+                rev_idx = bit_reverse(idx, bits)
+                bitrev_inBu[rev_idx] = inBu[j][idx]
+            inBu[j] = bitrev_inBu
+            print(f"inBu[{j}] after bit-reverse: {inBu[j]}")
+
+            for k in range(full_step):
+                print(f"m = {m}")
+                idx1 = k
+                idx2 = idx1 + 1
+                if idx2 >= (N + 1):
+                    continue
+
+                if m % 2 == 0:
+                    temp[m] = (inBu[j][idx1] + inBu[j][idx2]) % q
+                    print(f"temp[{m}] | inBu[{j}][{idx1}] = {inBu[j][idx1]} | inBu[{j}][{idx2}] = {inBu[j][idx2]} | arrW[{i}][{k//2}] = {arrW[i][k // 2]})")
+                    print(f"temp[{m}] = ({inBu[j][idx1]} + {inBu[j][idx2]} * {arrW[i][k // 2]}) % {q} = {temp[m]}")
+                else:
+                    idx1 = k - 1
+                    idx2 = idx1 + 1
+                    temp[m] = ((inBu[j][idx1] - inBu[j][idx2]) * arrW[i][(k - 1) // 2]) % q
+                    print(f"temp[{m}] | inBu[{j}][{idx1}] = {inBu[j][idx1]} | inBu[{j}][{idx2}] = {inBu[j][idx2]} | arrW[{i}][{(k - 1)//2}] = {arrW[i][(k - 1) // 2]})")
+                    print(f"temp[{m}] = ({inBu[j][idx1]} - {inBu[j][idx2]} * {arrW[i][(k - 1) // 2]}) % {q} = {temp[m]}")
+                m += 1
+
+        print("Buffer in last stage:")
+        print(buffer)
+
+        print("Temp in last stage:")
+        print(temp)
+
+    arrPolIntt = [(x * N_inv) % q for x in temp]
+    # arrPolIntt_reversed = bit_reverse_array(arrPolIntt)
+    # print("arrPol after INTT:")
+    print(arrPolIntt)
+    return arrPolIntt
